@@ -1,4 +1,4 @@
-# DevOps Bootcamp Final Project — Automated Monitoring & Deployment Infrastructure on AWS
+# DevOps Bootcamp Final Project
 
 This project demonstrates an end-to-end DevOps workflow by provisioning cloud infrastructure with **Terraform** and configuring/deploying services with **Ansible**. The infrastructure consists of a monitoring stack (Grafana + Prometheus), an Ansible control node, and a public-facing web server that runs a containerized application pulled from Amazon ECR.
 
