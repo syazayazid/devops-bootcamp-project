@@ -1,0 +1,27 @@
+- name: Naikkan stack pemantauan
+  hosts: monitoring_server
+  become: true
+  vars:
+    docker_users: [ssm-user]
+  roles:
+    - geerlingguy.docker
+  tasks:
+    - name: Cipta folder stack
+      file:
+        path: /opt/monitoring
+        state: directory
+        
+    - name: Hantar prometheus.yaml
+      copy:
+        src: prometheus.yaml
+        dest: /opt/monitoring/prometheus.yaml
+
+    - name: Hantar compose.yaml
+      copy:
+        src: compose.yaml
+        dest: /opt/monitoring/compose.yaml
+
+    - name: Naikkan container
+      command: docker compose up -d
+      args:
+        chdir: /opt/monitoring

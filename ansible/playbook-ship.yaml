@@ -1,0 +1,75 @@
+---
+- name: Ship & Run Docker Container from ECR
+  hosts: web_server
+  become: yes
+
+  vars:
+    aws_region: ap-southeast-1
+    ecr_registry: 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com
+    ecr_repo: devops-bootcamp-final
+    image_tag: latest
+    container_name: devops-bootcamp-final
+    host_port: 80
+    container_port: 80
+    docker_users: [ssm-user]
+
+  roles:
+    - geerlingguy.docker
+
+  tasks:
+
+    - name: Install unzip & curl (dependencies for awscli installer)
+      apt:
+        name:
+          - unzip
+          - curl
+        state: present
+        update_cache: yes
+
+    - name: Check if awscli is already installed
+      command: aws --version
+      register: aws_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Install AWS CLI v2
+      shell: |
+        if ! command -v aws >/dev/null 2>&1; then
+          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+          unzip -q -o /tmp/awscliv2.zip -d /tmp/aws-cli
+          /tmp/aws-cli/aws/install
+        fi
+      changed_when: false
+      when: aws_check.rc != 0
+
+    - name: Get ECR login password
+      command: aws ecr get-login-password --region "{{ aws_region }}"
+      register: ecr_password
+      changed_when: false
+
+    - name: Login to ECR via docker login
+      community.docker.docker_login:
+        registry_url: "{{ ecr_registry }}"
+        username: "AWS"
+        password: "{{ ecr_password.stdout }}"
+
+    - name: Pull latest image from ECR
+      community.docker.docker_image:
+        name: "{{ ecr_registry }}/{{ ecr_repo }}:{{ image_tag }}"
+        source: pull
+        force_source: yes
+
+    - name: Remove existing container if present
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run container from ECR image
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ ecr_registry }}/{{ ecr_repo }}:{{ image_tag }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ host_port }}:{{ container_port }}"
