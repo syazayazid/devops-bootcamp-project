@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Bootcamp Final — Monitoring &amp; Deployment Infrastructure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F5F1;
+    --surface:#FFFFFF;
+    --surface-2:#EFEEE8;
+    --border:#DAD8D0;
+    --text:#1B1E20;
+    --text-muted:#5B6165;
+    --accent:#0E7C7B;      /* teal - monitoring */
+    --accent-2:#C9622B;    /* burnt amber - infra/docker */
+    --accent-3:#8B5CF6;    /* violet - ansible */
+    --mono-bg:#1B1E20;
+    --mono-text:#E7E7E2;
+    --code-accent:#7FD8C9;
+    --shadow: 0 1px 2px rgba(20,20,20,0.06);
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --bg:#12151A;
+      --surface:#181C22;
+      --surface-2:#1F242B;
+      --border:#2C333B;
+      --text:#E9EAEA;
+      --text-muted:#9AA3AB;
+      --accent:#5FE0DA;
+      --accent-2:#F0A868;
+      --accent-3:#B79CF7;
+      --mono-bg:#0D0F12;
+      --mono-text:#E7E7E2;
+      --code-accent:#7FD8C9;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12151A;
+    --surface:#181C22;
+    --surface-2:#1F242B;
+    --border:#2C333B;
+    --text:#E9EAEA;
+    --text-muted:#9AA3AB;
+    --accent:#5FE0DA;
+    --accent-2:#F0A868;
+    --accent-3:#B79CF7;
+    --mono-bg:#0D0F12;
+    --mono-text:#E7E7E2;
+    --code-accent:#7FD8C9;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--accent); color:#0B0E10; }
+
+  a{ color:var(--accent); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover{ border-bottom-color:var(--accent); }
+
+  .wrap{
+    max-width:920px;
+    margin:0 auto;
+    padding:0 24px 96px;
+  }
+
+  /* ---------- Header / hero ---------- */
+  header.hero{
+    padding:72px 0 48px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:56px;
+  }
+  .eyebrow-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:22px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); display:inline-block; }
+  h1{
+    font-size:clamp(32px,5vw,48px);
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin:0 0 18px;
+    font-weight:800;
+    max-width:16ch;
+  }
+  .hero p.lede{
+    max-width:62ch;
+    font-size:17px;
+    color:var(--text-muted);
+    margin:0 0 28px;
+  }
+  .hero-links{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .pill{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    padding:7px 14px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    box-shadow:var(--shadow);
+  }
+  .pill b{ color:var(--accent); font-weight:600; }
+
+  /* ---------- Sections ---------- */
+  section{ margin-bottom:64px; }
+  section h2{
+    font-size:22px;
+    font-weight:700;
+    margin:0 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  section h2 .num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    color:var(--text-muted);
+    font-weight:500;
+  }
+  section > p.intro{
+    color:var(--text-muted);
+    max-width:70ch;
+    margin:0 0 24px;
+  }
+  section h3{ font-size:16px; font-weight:600; margin:28px 0 12px; }
+
+  /* ---------- Architecture diagram ---------- */
+  .diagram-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .diagram-card svg{ display:block; width:100%; height:auto; min-width:640px; }
+
+  /* ---------- Tables ---------- */
+  .table-scroll{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow); }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--surface);
+    font-size:14.5px;
+    min-width:520px;
+  }
+  thead th{
+    text-align:left;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:600;
+    font-size:12.5px;
+    color:var(--text-muted);
+    background:var(--surface-2);
+    padding:11px 16px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 16px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody td code, tbody td .ip{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--code-accent);
+    background:var(--mono-bg);
+    padding:2px 6px;
+    border-radius:4px;
+  }
+  .tag{
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    padding:2px 8px;
+    border-radius:20px;
+    border:1px solid var(--border);
+  }
+  .tag.priv{ color:var(--accent-3); border-color:var(--accent-3); }
+  .tag.pub{ color:var(--accent-2); border-color:var(--accent-2); }
+
+  /* ---------- Code blocks ---------- */
+  pre{
+    background:var(--mono-bg);
+    color:var(--mono-text);
+    padding:16px 18px;
+    border-radius:10px;
+    overflow-x:auto;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.55;
+    box-shadow:var(--shadow);
+  }
+  code{ font-family:'JetBrains Mono',monospace; }
+  p code, li code{
+    background:var(--surface-2);
+    padding:1px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+    border:1px solid var(--border);
+  }
+
+  /* ---------- Concept cards ---------- */
+  .concepts{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:16px;
+  }
+  .concept{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 20px 22px;
+    box-shadow:var(--shadow);
+    border-top:3px solid var(--accent-card, var(--accent));
+  }
+  .concept:nth-child(1){ --accent-card: var(--accent); }
+  .concept:nth-child(2){ --accent-card: var(--accent-2); }
+  .concept:nth-child(3){ --accent-card: var(--accent-3); }
+  .concept h4{
+    margin:0 0 8px;
+    font-size:15px;
+    font-family:'JetBrains Mono',monospace;
+    color:var(--accent-card, var(--accent));
+  }
+  .concept p{ margin:0 0 10px; font-size:14px; color:var(--text-muted); }
+  .concept ul{ margin:0; padding-left:18px; font-size:13.5px; color:var(--text-muted); }
+  .concept li{ margin-bottom:4px; }
+
+  /* ---------- Steps (ECR) ---------- */
+  .steps{ display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; box-shadow:var(--shadow); }
+  .step{ display:grid; grid-template-columns:44px 1fr; gap:16px; padding:16px 18px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .step:last-child{ border-bottom:none; }
+  .step .idx{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--text-muted);
+    font-size:13px;
+    padding-top:2px;
+  }
+  .step .body h5{ margin:0 0 6px; font-size:14.5px; font-weight:600; }
+  .step .body pre{ margin:8px 0 4px; font-size:12.5px; }
+  .step .body p.note{ margin:6px 0 0; font-size:13px; color:var(--text-muted); }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding-top:24px;
+    color:var(--text-muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  @media (max-width:600px){
+    header.hero{ padding:48px 0 36px; }
+    .wrap{ padding:0 16px 72px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow-row">
+      <span class="dot"></span> ap-southeast-1 · devops-vpc · 10.0.0.0/24
+    </div>
+    <h1>DevOps Bootcamp Final Project</h1>
+    <p class="lede">Automated monitoring and deployment infrastructure on AWS — provisioned with Terraform, configured with Ansible, and shipped as a Dockerized app served straight from Amazon ECR.</p>
+    <div class="hero-links">
+      <span class="pill">monitor.nurinyazid.my → <b>Grafana</b></span>
+      <span class="pill">web.nurinyazid.my → <b>App</b></span>
+      <span class="pill">Terraform + Ansible</span>
+    </div>
+  </header>
+
+  <section id="architecture">
+    <h2><span class="num">01</span> Infrastructure Overview</h2>
+    <p class="intro">Three EC2 instances inside a single VPC: a private monitoring node, a private Ansible controller, and a public web server exposed via an Elastic IP.</p>
+
+    <div class="diagram-card">
+      <svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- VPC boundary -->
+        <rect x="10" y="10" width="840" height="360" rx="14" fill="none" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="6 5"/>
+        <text x="28" y="34" font-family="JetBrains Mono, monospace" font-size="12" fill="var(--text-muted)">VPC · devops-vpc · 10.0.0.0/24 · ap-southeast-1</text>
+
+        <!-- Private subnet -->
+        <rect x="32" y="56" width="440" height="290" rx="10" fill="var(--surface-2)" stroke="var(--accent-3)" stroke-width="1.2"/>
+        <text x="50" y="80" font-family="JetBrains Mono, monospace" font-size="12" fill="var(--accent-3)">private subnet</text>
+
+        <!-- Monitoring server -->
+        <rect x="56" y="102" width="196" height="110" rx="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="76" y="128" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="var(--text)">Monitoring Server</text>
+        <text x="76" y="148" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--code-accent)">10.0.0.136</text>
+        <text x="76" y="168" font-family="Inter, sans-serif" font-size="11.5" fill="var(--text-muted)">Grafana</text>
+        <text x="76" y="184" font-family="Inter, sans-serif" font-size="11.5" fill="var(--text-muted)">Prometheus</text>
+        <text x="76" y="200" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--text-muted)">sg: private</text>
+
+        <!-- Ansible controller -->
+        <rect x="270" y="102" width="196" height="110" rx="8" fill="var(--surface)" stroke="var(--accent-3)" stroke-width="1.5"/>
+        <text x="290" y="128" font-family="Inter, sans-serif" font-size="13.5" font-weight="700" fill="var(--text)">Ansible Controller</text>
+        <text x="290" y="148" font-family="JetBrains Mono, monospace" font-size="11.5" fill="var(--code-accent)">10.0.0.135</text>
+        <text x="290" y="168" font-family="Inter, sans-serif" font-size="11.5" fill="var(--text-muted)">runs playbooks</text>
+        <text x="290" y="184" font-family="Inter, sans-serif" font-size="11.5" fill="var(--text-muted)">SSH to targets</text>
+        <text x="290" y="200" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--text-muted)">sg: private</text>
+
+        <!-- arrow controller -> monitoring -->
+        <line x1="270" y1="157" x2="252" y2="157" stroke="var(--text-muted)" stroke-width="1.3" marker-end="url(#arrow)"/>
+
+        <!-- arrow controller -> webserver -->
+        <path d="M 466 157 C 560 157, 600 260, 660 260" fill="none" stroke="var(--text-muted)" stroke-width="1.3" marker-end="url(#arrow)"/>
+
+        <!-- Public subnet -->
+        <rect x="500" y="230" width="332" height="116" rx="10" fill="var(--surface-2)" stroke="var(--accent-2)" stroke-width="1.2"/>
+        <text x="518" y="254" font-family="JetBrains Mono, monospace" font-size="12" fill="var(--accent-2)">public subnet</text>
+
+        <!-- Web server -->
+        <rect x="660" y="264" width="150" height="70" rx="8" fill="var(--surface)" stroke="var(--accent-2)" stroke-width="1.5"/>
+        <text x="676" y="286" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="var(--text)">Web Server</text>
+        <text x="676" y="304" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--code-accent)">10.0.0.5 + EIP</text>
+        <text x="676" y="320" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--text-muted)">sg: public</text>
+
+        <!-- ECR box -->
+        <rect x="500" y="70" width="332" height="70" rx="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="520" y="94" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="var(--text)">Amazon ECR</text>
+        <text x="520" y="112" font-family="JetBrains Mono, monospace" font-size="10.5" fill="var(--text-muted)">devops-bootcamp-final:latest</text>
+        <text x="520" y="128" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--text-muted)">712607540981.dkr.ecr.ap-southeast-1</text>
+
+        <!-- arrow ECR -> web server -->
+        <path d="M 735 140 C 735 180, 735 220, 735 260" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#arrowAccent)"/>
+        <text x="742" y="200" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent)">docker pull</text>
+
+        <!-- Internet / domain labels -->
+        <text x="595" y="367" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--text-muted)">web.nurinyazid.my</text>
+
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--text-muted)"/>
+          </marker>
+          <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <h3>Servers</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Component</th><th>Private IP</th><th>Subnet</th><th>Security Group</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>Monitoring Server</td><td><span class="ip">10.0.0.136</span></td><td><span class="tag priv">private</span></td><td><span class="tag priv">private</span></td><td>Hosts Grafana &amp; Prometheus</td></tr>
+          <tr><td>Ansible Controller</td><td><span class="ip">10.0.0.135</span></td><td><span class="tag priv">private</span></td><td><span class="tag priv">private</span></td><td>Runs playbooks against the fleet</td></tr>
+          <tr><td>Web Server</td><td><span class="ip">10.0.0.5</span> + EIP</td><td><span class="tag pub">public</span></td><td><span class="tag pub">public</span></td><td>Runs the Docker container from ECR</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Domains &amp; Image</h3>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL / Reference</th><th>Points to</th></tr></thead>
+        <tbody>
+          <tr><td><code>monitor.nurinyazid.my</code></td><td>Monitoring Server (Grafana)</td></tr>
+          <tr><td><code>web.nurinyazid.my</code></td><td>Web Server (Dockerized app)</td></tr>
+          <tr><td><code>712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest</code></td><td>ECR image pulled by the web server</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="terraform">
+    <h2><span class="num">02</span> Terraform Structure</h2>
+    <p class="intro">Infrastructure-as-code files responsible for provisioning the VPC, subnets, EC2 instances, and security groups — and for handing off a ready-made inventory to Ansible.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>network.tf</code></td><td>Defines VPC, subnets (public/private), route tables</td></tr>
+          <tr><td><code>ec2.tf</code></td><td>Provisions the 3 EC2 instances</td></tr>
+          <tr><td><code>security.tf</code></td><td>Defines security groups (public/private rules)</td></tr>
+          <tr><td><code>providers.tf</code></td><td>AWS provider &amp; Terraform configuration</td></tr>
+          <tr><td><code>output.tf</code></td><td>Outputs (IPs, resource IDs) for reference</td></tr>
+          <tr><td><code>inventory.tf</code></td><td>Generates dynamic Ansible inventory from Terraform outputs</td></tr>
+          <tr><td><code>inventory.ini.tftpl</code></td><td>Template file used to render the Ansible inventory</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="ansible">
+    <h2><span class="num">03</span> Ansible Structure</h2>
+    <p class="intro">Configuration-management files that install the monitoring stack, wire up exporters, and ship the application container to the web server.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>ansible.cfg</code></td><td>Ansible configuration (inventory path, SSH settings, etc.)</td></tr>
+          <tr><td><code>inventory.ini</code></td><td>List of managed hosts (monitoring, web server)</td></tr>
+          <tr><td><code>playbook-stack.yaml</code></td><td>Deploys the monitoring stack (Grafana + Prometheus)</td></tr>
+          <tr><td><code>playbook-exporter.yaml</code></td><td>Installs/configures Prometheus Node Exporter on target hosts</td></tr>
+          <tr><td><code>playbook-ship.yaml</code></td><td>Deploys/ships the application container to the web server</td></tr>
+          <tr><td><code>prometheus.yaml</code></td><td>Prometheus configuration file (scrape targets, jobs)</td></tr>
+          <tr><td><code>compose.yaml</code></td><td>Docker Compose file for Grafana/Prometheus or the app container</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="concepts">
+    <h2><span class="num">04</span> Core Concepts</h2>
+    <p class="intro">A quick primer on the three tools doing the heavy lifting in this stack.</p>
+    <div class="concepts">
+      <div class="concept">
+        <h4>Grafana</h4>
+        <p>An open-source visualization and dashboarding tool. It doesn't collect data itself — it connects to data sources like Prometheus and turns that data into dashboards, graphs, and alerts.</p>
+        <ul>
+          <li>Reads metrics from Prometheus</li>
+          <li>Builds real-time dashboards</li>
+          <li>Exposed at <code>monitor.nurinyazid.my</code></li>
+        </ul>
+      </div>
+      <div class="concept">
+        <h4>Prometheus</h4>
+        <p>An open-source monitoring and alerting system built for time-series data. It "scrapes" metrics from targets at set intervals via HTTP endpoints.</p>
+        <ul>
+          <li>Pulls metrics from Node Exporter</li>
+          <li>Stores data in its own TSDB</li>
+          <li>Feeds Grafana for visualization</li>
+        </ul>
+      </div>
+      <div class="concept">
+        <h4>Ansible</h4>
+        <p>An agentless configuration-management tool. Tasks are written as YAML playbooks and pushed to target hosts over SSH — no agent software required.</p>
+        <ul>
+          <li>Installs the Grafana/Prometheus stack</li>
+          <li>Configures Node Exporter on hosts</li>
+          <li>Deploys the container on the web server</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="ecr">
+    <h2><span class="num">05</span> Building &amp; Pushing an Image to ECR</h2>
+    <p class="intro">The general workflow for getting a local Docker image into Amazon ECR, ready for the web server to pull.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="idx">01</div>
+        <div class="body">
+          <h5>Authenticate Docker to ECR</h5>
+          <pre>aws ecr get-login-password --region ap-southeast-1 \
+  | docker login --username AWS --password-stdin \
+  712607540981.dkr.ecr.ap-southeast-1.amazonaws.com</pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="idx">02</div>
+        <div class="body">
+          <h5>Build the image</h5>
+          <pre>docker build -t devops-bootcamp-final .</pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="idx">03</div>
+        <div class="body">
+          <h5>Tag it for ECR</h5>
+          <pre>docker tag devops-bootcamp-final:latest \
+  712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest</pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="idx">04</div>
+        <div class="body">
+          <h5>Push to ECR</h5>
+          <pre>docker push 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest</pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="idx">05</div>
+        <div class="body">
+          <h5>Pull on the web server (via Ansible)</h5>
+          <pre>docker pull 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest</pre>
+          <p class="note">Handled inside <code>playbook-ship.yaml</code> — ideally using an IAM role attached to the EC2 instance rather than hardcoded credentials.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    devops-vpc · ap-southeast-1 · terraform + ansible · 2026
+  </footer>
+
+</div>
+</body>
+</html>
