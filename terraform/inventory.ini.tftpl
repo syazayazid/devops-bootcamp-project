@@ -1,0 +1,7 @@
+[nodes]
+web_server ansible_host=${web_server_ip}
+monitoring_server ansible_host=${monitoring_server_ip}
+
+[nodes:vars]
+ansible_user=ssm-user
+ansible_ssh_private_key_file=~/.ssh/id_ed25519
