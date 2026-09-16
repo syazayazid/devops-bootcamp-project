@@ -42,7 +42,7 @@ This project demonstrates an end-to-end DevOps workflow by provisioning cloud in
 **ECR Image**
 
 ```
-712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest
+ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest
 ```
 
 ---
