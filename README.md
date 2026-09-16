@@ -99,11 +99,11 @@ Here's the general workflow to push a Docker image to ECR:
 
 | Step | Command / Action |
 |---|---|
-| 1. Authenticate Docker to ECR | `aws ecr get-login-password --region ap-southeast-1 \| docker login --username AWS --password-stdin 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com` |
+| 1. Authenticate Docker to ECR | `aws ecr get-login-password --region ap-southeast-1 \| docker login --username AWS --password-stdin ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com` |
 | 2. Build the Docker image | `docker build -t devops-bootcamp-final .` |
-| 3. Tag the image for ECR | `docker tag devops-bootcamp-final:latest 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
-| 4. Push the image to ECR | `docker push 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
-| 5. Pull image on target server (via Ansible/Docker Compose) | `docker pull 712607540981.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
+| 3. Tag the image for ECR | `docker tag devops-bootcamp-final:latest ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
+| 4. Push the image to ECR | `docker push ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
+| 5. Pull image on target server (via Ansible/Docker Compose) | `docker pull ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest` |
 
 **Notes:**
 
