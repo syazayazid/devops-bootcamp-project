@@ -1,4 +1,4 @@
-# DevOps Bootcamp Final Project
+# DevOps Bootcamp Final Project — Automated Monitoring & Deployment Infrastructure on AWS
 
 This project demonstrates an end-to-end DevOps workflow by provisioning cloud infrastructure with **Terraform** and configuring/deploying services with **Ansible**. The infrastructure consists of a monitoring stack (Grafana + Prometheus), an Ansible control node, and a public-facing web server that runs a containerized application pulled from Amazon ECR.
 
@@ -32,18 +32,35 @@ This project demonstrates an end-to-end DevOps workflow by provisioning cloud in
 | VPC | devops-vpc |
 | CIDR Block | 10.0.0.0/24 |
 
-**Domains**
+**Domains & DNS**
 
-| URL | Points To |
-|---|---|
-| monitor.nurinyazid.my | Monitoring Server (Grafana) |
-| web.nurinyazid.my | Web Server (Dockerized App) |
+| URL | Points To | How it's exposed |
+|---|---|---|
+| monitor.nurinyazid.my | Monitoring Server (Grafana) | Cloudflare Tunnel (no public inbound access) |
+| web.nurinyazid.my | Web Server (Dockerized App) | Cloudflare DNS → Elastic IP |
 
 **ECR Image**
 
 ```
 ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest
 ```
+
+### Connectivity: NAT Gateway & Cloudflare Tunnel
+
+Since the Monitoring Server and Ansible Controller sit in a **private subnet** with no public IP, a **NAT Gateway** is used to give them outbound internet access (e.g. for package installs, pulling Docker images, or reaching Cloudflare). However, NAT Gateway alone does not allow *inbound* traffic — there's no way to reach Grafana on `10.0.0.136` directly from the internet.
+
+To solve this without opening any inbound ports or attaching a public IP to the monitoring server, this project uses **Cloudflare Tunnel** (`cloudflared`):
+
+- `cloudflared` runs on the Monitoring Server and creates an **outbound-only** encrypted connection to Cloudflare's edge.
+- Cloudflare then routes `monitor.nurinyazid.my` through that tunnel back to Grafana, without needing any inbound security group rule or public IP on the instance.
+- This keeps the monitoring server fully private while still making the Grafana dashboard reachable at `monitor.nurinyazid.my`.
+
+For the **Web Server**, since it already has an Elastic IP in the public subnet, exposure is simpler — a **Cloudflare DNS A record** for `web.nurinyazid.my` simply points directly to the Elastic IP.
+
+| Server | Exposure Method | Why |
+|---|---|---|
+| Monitoring Server (private) | Cloudflare Tunnel (outbound-only, via NAT Gateway) | No public IP / inbound rule needed |
+| Web Server (public) | Cloudflare DNS → Elastic IP | Already public-facing, direct routing works |
 
 ---
 

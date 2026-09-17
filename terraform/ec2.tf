@@ -31,7 +31,6 @@ module "web_server" {
   private_ip             = "10.0.0.5"
   key_name               = "Bootcamp"
   tags                   = { Name = "web_server" }
-  root_block_device      = { size = 16 }
 }
 
 module "monitoring_server" {
@@ -47,7 +46,7 @@ module "monitoring_server" {
   private_ip             = "10.0.0.136"
   key_name               = "Bootcamp"
   tags                   = { Name = "monitoring_server" }
-  root_block_device      = { size = 16 }
+
 }
 
 module "controller_server" {
@@ -63,5 +62,5 @@ module "controller_server" {
   private_ip             = "10.0.0.135"
   key_name               = "Bootcamp"
   tags                   = { Name = "controller_server" }
-  root_block_device      = { size = 16 }
+
 }
