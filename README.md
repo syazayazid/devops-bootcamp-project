@@ -22,7 +22,7 @@ This project demonstrates an end-to-end DevOps workflow by provisioning cloud in
 |---|---|---|---|---|
 | Monitoring Server | 10.0.0.136 | Private | Private | Hosts Grafana & Prometheus |
 | Ansible Controller | 10.0.0.135 | Private | Private | Runs Ansible playbooks to configure/deploy services |
-| Web Server | 10.0.0.5 (+ Elastic IP) | Public | Public | Runs Docker container from ECR |
+| Web Server | 10.0.0.5 | Public | Public | Runs Docker container from ECR |
 
 **Network Details**
 
@@ -36,8 +36,8 @@ This project demonstrates an end-to-end DevOps workflow by provisioning cloud in
 
 | URL | Points To | How it's exposed |
 |---|---|---|
-| monitor.nurinyazid.my | Monitoring Server (Grafana) | Cloudflare Tunnel (no public inbound access) |
-| web.nurinyazid.my | Web Server (Dockerized App) | Cloudflare DNS → Elastic IP |
+| monitor.nurinyazid.my | Monitoring Server (Grafana) | Cloudflare Tunnel, outbound via NAT Gateway's Elastic IP |
+| web.nurinyazid.my | Web Server (Dockerized App) | Cloudflare DNS → Web Server's public IP (via Internet Gateway) |
 
 **ECR Image**
 
@@ -45,22 +45,27 @@ This project demonstrates an end-to-end DevOps workflow by provisioning cloud in
 ecr_registery.dkr.ecr.ap-southeast-1.amazonaws.com/devops-bootcamp-final:latest
 ```
 
-### Connectivity: NAT Gateway & Cloudflare Tunnel
+### Connectivity: NAT Gateway & Internet Gateway
 
-Since the Monitoring Server and Ansible Controller sit in a **private subnet** with no public IP, a **NAT Gateway** is used to give them outbound internet access (e.g. for package installs, pulling Docker images, or reaching Cloudflare). However, NAT Gateway alone does not allow *inbound* traffic — there's no way to reach Grafana on `10.0.0.136` directly from the internet.
+The two subnets in this project reach the internet in different ways:
 
-To solve this without opening any inbound ports or attaching a public IP to the monitoring server, this project uses **Cloudflare Tunnel** (`cloudflared`):
+- **Private subnet** → **NAT Gateway + Elastic IP**. The Monitoring Server and Ansible Controller have no public IP of their own. Instead, an Elastic IP is associated with the NAT Gateway, and that NAT Gateway provides **outbound-only** internet access for everything in the private subnet.
+- **Public subnet** → **Internet Gateway**. The Web Server sits in the public subnet and reaches the internet directly through the Internet Gateway — it doesn't need its own Elastic IP, since the public subnet already routes traffic in and out.
 
-- `cloudflared` runs on the Monitoring Server and creates an **outbound-only** encrypted connection to Cloudflare's edge.
-- Cloudflare then routes `monitor.nurinyazid.my` through that tunnel back to Grafana, without needing any inbound security group rule or public IP on the instance.
-- This keeps the monitoring server fully private while still making the Grafana dashboard reachable at `monitor.nurinyazid.my`.
+This outbound path through the NAT Gateway's Elastic IP is exactly what powers **Cloudflare Tunnel** (`cloudflared`), running on the Monitoring Server:
 
-For the **Web Server**, since it already has an Elastic IP in the public subnet, exposure is simpler — a **Cloudflare DNS A record** for `web.nurinyazid.my` simply points directly to the Elastic IP.
+- The Monitoring Server initiates an **outbound-only** connection to Cloudflare's edge, routed out through the NAT Gateway's Elastic IP.
+- Cloudflare then maps `monitor.nurinyazid.my` to that tunnel, bringing Grafana live without needing any inbound security group rule or a public IP on the monitoring server itself.
 
-| Server | Exposure Method | Why |
-|---|---|---|
-| Monitoring Server (private) | Cloudflare Tunnel (outbound-only, via NAT Gateway) | No public IP / inbound rule needed |
-| Web Server (public) | Cloudflare DNS → Elastic IP | Already public-facing, direct routing works |
+For the **Web Server**, exposure is simpler — since it's already reachable via the Internet Gateway, a **Cloudflare DNS A record** for `web.nurinyazid.my` just points directly to its public IP.
+
+| Component | Subnet | Internet Path | Exposure Method |
+|---|---|---|---|
+| Monitoring Server | Private | NAT Gateway + Elastic IP (outbound only) | Cloudflare Tunnel → live at `monitor.nurinyazid.my` |
+| Ansible Controller | Private | NAT Gateway + Elastic IP (outbound only) | Not exposed publicly |
+| Web Server | Public | Internet Gateway (direct) | Cloudflare DNS → live at `web.nurinyazid.my` |
+
+Separately, within the VPC, the Web Server's **private IP** (`10.0.0.5`) is scraped by Prometheus on the Monitoring Server via Node Exporter — this monitoring traffic stays entirely inside the VPC and never touches the internet.
 
 ---
 
